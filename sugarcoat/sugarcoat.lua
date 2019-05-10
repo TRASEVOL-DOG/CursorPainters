@@ -141,3 +141,14 @@ end
 
 love.quit = quit
 events.quit = quit
+
+if not SUGAR_SERVER_MODE then
+  local ocanv
+  old_love.focus = function(b)
+    if b then
+      love.graphics.setCanvas(ocanv)
+    else
+      ocanv = love.graphics.getCanvas()
+    end
+  end
+end
