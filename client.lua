@@ -1,8 +1,8 @@
 if CASTLE_PREFETCH then
   CASTLE_PREFETCH({
-    "game",
-    "object",
-    "nnetwork",
+    "game.lua",
+    "object.lua",
+    "nnetwork.lua",
     "assets/sheet.png",
     "assets/Lithify.ttf",
   })

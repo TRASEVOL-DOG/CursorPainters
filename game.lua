@@ -38,6 +38,8 @@ function _init()
     end
     canvas_d[y] = line
   end
+  
+  canvas_diff = {}
 
   init_network()
   
