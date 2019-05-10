@@ -143,9 +143,14 @@ function _draw()
     local s = cursor_target
     local x,y = s.x + 3, s.y - 1
 
-    if s.pic then
+    --if s.pic then
+    --  rectfill(x-17, y-41, x+16, y-8, 0)
+    --  spr_sheet(s.pic, x-16, y-40, 32, 32)
+    --end
+    
+    if surface_exists("cur"..s.id) then
       rectfill(x-17, y-41, x+16, y-8, 0)
-      spr_sheet(s.pic, x-16, y-40, 32, 32)
+      spr_sheet("cur"..s.id, x-16, y-40, 32, 32)
     end
     
     printp(0x3330, 0x3130, 0x3230, 0x3330)

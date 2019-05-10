@@ -85,7 +85,7 @@ function client_input(diff)
       local url = s_d[6]
       if url then
         network.async(function()
-          s.pic = load_png(nil, url)
+          s.pic = load_png("cur"..id, url)
           love.graphics.setCanvas()
         end)
       end
