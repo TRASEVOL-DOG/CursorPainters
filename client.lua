@@ -34,7 +34,7 @@ function client.load()
 end
 
 function client.update()
-  if not init_done then return
+  if not init_done then return end
 
   if ROLE then client.preupdate() end
 
@@ -44,7 +44,7 @@ function client.update()
 end
 
 function client.draw()
-  if not init_done then return
+  if not init_done then return end
   
   _draw()
 end
