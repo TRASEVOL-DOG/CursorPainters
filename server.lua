@@ -15,9 +15,13 @@ function server.load()
   set_frame_waiting(50)
   
   _init()
+  
+  init_done = true
 end
 
 function server.update()
+  if not init_done then return end
+
   if ROLE then server.preupdate() end
 
   _update()
