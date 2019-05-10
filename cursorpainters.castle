@@ -1,0 +1,11 @@
+---
+main: client.lua
+title: CursorPainters
+owner: trasevol-dog
+primaryColor: 46878f
+coverImage: thumbnail.png
+multiplayer:
+  enabled: true
+  serverMain: server.lua
+description: |
+ Everyone's an artist.
