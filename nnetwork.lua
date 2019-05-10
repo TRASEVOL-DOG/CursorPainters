@@ -39,17 +39,23 @@ function client_input(diff)
   my_id = client.id
   
   if diff[1] then
-    local ocanv = love.graphics.getCanvas()
-  
-    target(canvas)
-    for y, l_d in pairs(diff[1]) do
-      for x, v in pairs(l_d) do
-        pset(x,y,v)
-      end
-    end
-    target()
+    --target(canvas)
+    --for y, l_d in pairs(diff[1]) do
+    --  --local cl_d = canvas_d[y]
+    --  for x, v in pairs(l_d) do
+    --    pset(x,y,v)
+    --    --cl_d[x] = v
+    --  end
+    --end
+    --target()
     
-    love.graphics.setCanvas(ocanv)
+    for y, l_d in pairs(diff[1]) do
+      local cl_d = canvas_diff[y] or {}
+      for x, v in pairs(l_d) do
+        cl_d[x] = v
+      end
+      canvas_diff[y] = cl_d
+    end
   end
   
   for id, s in pairs(cursors) do

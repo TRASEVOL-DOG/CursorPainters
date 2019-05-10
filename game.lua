@@ -49,6 +49,16 @@ end
 
 function _update()
   if not IS_SERVER then
+    target(canvas)
+    for y,l in pairs(canvas_diff) do
+      for x,v in pairs(l) do
+        pset(x,y,v)
+      end
+      canvas_diff[y] = nil
+    end
+    target()
+  
+  
     local mx, my = flr(btnv(0)), flr(btnv(1))
     
     if not btn(3) then
@@ -102,6 +112,7 @@ function _draw()
 
   spr_sheet(canvas, 0, 0)
   
+  color(3)
   rectfill(0,0,255,8,0)
   rectfill(0,9,255,9,1)
   rectfill(0,10,255,10,0)
@@ -142,6 +153,8 @@ function _draw()
   end
   
   draw_objects(3,4)
+  
+  
 end
 
 -- DRAWS
