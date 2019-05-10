@@ -86,6 +86,7 @@ function client_input(diff)
       if url then
         network.async(function()
           s.pic = load_png(nil, url)
+          love.graphics.setCanvas()
         end)
       end
     end
@@ -101,8 +102,11 @@ function client_output()
   
   if not client.home[6] and castle and castle.user.isLoggedIn then
     local info = castle.user.getMe()
-    client.home[6] = info.name or info.username
-    client.home[7] = info.photoUrl
+    if info then
+      client.home[6] = info.username
+      --client.home[6] = info.name or info.username
+      client.home[7] = info.photoUrl
+    end
   end
 end
 
@@ -114,6 +118,7 @@ end
 
 function client_disconnect()
   log("Disconnected from server!")
+  disconnected = true
 end
 
 

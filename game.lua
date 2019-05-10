@@ -52,7 +52,9 @@ function _update()
     target(canvas)
     for y,l in pairs(canvas_diff) do
       for x,v in pairs(l) do
-        pset(x,y,v)
+        if v then
+          pset(x,y,v)
+        end
       end
       canvas_diff[y] = nil
     end
@@ -154,7 +156,27 @@ function _draw()
   
   draw_objects(3,4)
   
-  
+  if castle and not my_id then
+    local x, y = 128, 80
+    local str
+    if castle.user.isLoggedIn then
+      if disconnected then
+        str = "Disconnected :("
+      else
+        str = "Connecting"
+        for i = 1,flr(t()/0.25)%4 do
+          str = str.."."
+        end
+      end
+    else
+      str = "Please log-in to play!"
+    end
+    
+    printp(0x3330, 0x3130, 0x3230, 0x3330)
+    printp_color(3, 1, 0)
+    local w = str_px_width(str)
+    pprint(str, x - w/2 - 2, y - 15)
+  end
 end
 
 -- DRAWS
