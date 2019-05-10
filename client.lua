@@ -1,8 +1,10 @@
 if CASTLE_PREFETCH then
   CASTLE_PREFETCH({
+    "game",
+    "object",
+    "nnetwork",
     "assets/sheet.png",
-    "assets/jump.wav",
-    "assets/snake.wav"
+    "assets/Lithify.ttf",
   })
 end
 
@@ -27,9 +29,13 @@ function client.load()
   load_assets()
   
   _init()
+  
+  init_done = true
 end
 
 function client.update()
+  if not init_done then return
+
   if ROLE then client.preupdate() end
 
   _update()
@@ -38,5 +44,7 @@ function client.update()
 end
 
 function client.draw()
+  if not init_done then return
+  
   _draw()
 end
