@@ -149,14 +149,17 @@ function _draw()
     --end
     
     if surface_exists("cur"..s.id) then
-      rectfill(x-17, y-41, x+16, y-8, 0)
+      rectfill(x-18, y-42, x+17, y-9, 0)
+      rectfill(x-17, y-41, x+16, y-8, 1)
       spr_sheet("cur"..s.id, x-16, y-40, 32, 32)
     end
     
-    printp(0x3330, 0x3130, 0x3230, 0x3330)
-    printp_color(3, 1, 0)
-    local w = str_px_width(s.name)
-    pprint(s.name, x - w/2 - 2, y - 15)
+    if s.name then
+      printp(0x3330, 0x3130, 0x3230, 0x3330)
+      printp_color(3, 1, 0)
+      local w = str_px_width(s.name)
+      pprint(s.name, x - w/2 - 2, y - 15)
+    end
   end
   
   draw_objects(3,4)
