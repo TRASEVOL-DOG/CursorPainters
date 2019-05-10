@@ -105,7 +105,7 @@ love = setmetatable({}, {
 if castle then
   local old_castle = castle
   castle = setmetatable({}, {
-    __index = old_love,
+    __index = old_castle,
     __newindex = function(t, k, v)
       if type(v) == "function" or v == nil then
         old_castle[k] = arrange_call(v)
