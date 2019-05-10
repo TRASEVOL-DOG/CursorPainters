@@ -214,7 +214,7 @@ end
 function load_assets()
   load_png("spritesheet", "assets/sheet.png", nil, true)
   
-  load_font("assets/Lithify.ttf", 16, "font", true)
+  load_font("assets/Lithify.ttf", 16, "lithify", true)
   
 --  load_sfx("assets/jump.wav", "jump", 1)
 --  load_sfx("assets/snake.wav", "snek", 0.5)

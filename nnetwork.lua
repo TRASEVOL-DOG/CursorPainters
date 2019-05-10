@@ -174,6 +174,7 @@ end
 -- }
 
 
+USE_CASTLE_CONFIG = (castle ~= nil)
 
 function start_client()
   client = cs.client
