@@ -3,6 +3,8 @@ if CASTLE_PREFETCH then
     "game.lua",
     "object.lua",
     "nnetwork.lua",
+    "https://raw.githubusercontent.com/castle-games/share.lua/master/cs.lua",
+    "https://raw.githubusercontent.com/castle-games/share.lua/master/state.lua",
     "assets/sheet.png",
     "assets/Lithify.ttf",
   })
