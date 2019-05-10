@@ -109,7 +109,10 @@ local _dont_arrange = {
   isVersionCompatible  = true,
   setDeprecationOutput = true,
   run                  = true,
-  errorhandler         = true
+  errorhandler         = true,
+  
+  focus      = true,
+  mousefocus = true
 }
 local _prev_exist = {}
 
