@@ -76,7 +76,9 @@ function client_input(diff)
       s.name = s_d[5]
       local url = s_d[6]
       if url then
-        s.pic = load_png(nil, url)
+        network.async(function()
+          s.pic = load_png(nil, url)
+        end)
       end
     end
   end
@@ -174,8 +176,6 @@ end
 -- }
 
 
-USE_CASTLE_CONFIG = (castle ~= nil)
-
 function start_client()
   client = cs.client
   
@@ -202,7 +202,7 @@ function start_server(max_clients)
   server = cs.server
   server.maxClients = max_clients
   
-  if USE_CASTLE_CONFIG then
+  if castle then
     server.useCastleConfig()
   else
     start_server = function()
