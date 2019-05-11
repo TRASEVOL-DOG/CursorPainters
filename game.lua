@@ -31,12 +31,22 @@ function _init()
   end
   
   canvas_d = {}
+  if IS_SERVER then
   for y = 0,159 do
     local line = {}
     for x = 0,255 do
       line[x] = 0
     end
     canvas_d[y] = line
+  end
+  else
+    for y = 0,159 do
+      local line = {}
+      for x = 0,255 do
+        line[x] = 0
+      end
+      canvas_d[y] = line
+    end
   end
   
   canvas_diff = {}
@@ -65,7 +75,7 @@ function _update()
         
         if s_l then
           for x,v in pairs(s_l) do
-            if v then
+            if v and x < btnv(0)-16 or x > btnv(0)+24 or y < btnv(1)-16 or y > btnv(1)+24 then
               cd_l[x] = v
               pset(x,y,v)
             end
