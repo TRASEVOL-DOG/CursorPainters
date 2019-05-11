@@ -68,21 +68,24 @@ function client_input(diff)
   for id, s_d in pairs(client.share[2]) do
     local s = cursors[id]
     if not s then
-      s = create_cursor(id)
-      cursors[id] = s
-      
       if id == my_id then
-        my_cursor = s
+        s = my_cursor
+        s.id = my_id
+      else
+        s = create_cursor(id)
       end
+      
+      cursors[id] = s
     end
     
     if id ~= my_id then
-      s.x, s.y, s.dn, s.up = unpack(s_d)
+      s.x, s.y, s.dn, s.up, s.bk = unpack(s_d)
+      s.bk = s_d[5]
     end
     
     if not s.name then
-      s.name = s_d[5]
-      local url = s_d[6]
+      s.name = s_d[6]
+      local url = s_d[7]
       if url then
         network.async(function()
           s.pic = load_png("cur"..id, url)
@@ -99,25 +102,28 @@ function client_output()
   client.home[3] = flr(btnv(1))
   client.home[4] = btn(2)
   client.home[5] = btn(3)
+  client.home[6] = btn(4)
   
-  if not client.home[6] and castle and castle.user.isLoggedIn then
+  if not client.home[7] and castle and castle.user.isLoggedIn then
     local info = castle.user.getMe()
     if info then
-      client.home[6] = info.username
-      --client.home[6] = info.name or info.username
-      client.home[7] = info.photoUrl
+      client.home[7] = info.username
+      --client.home[7] = info.name or info.username
+      client.home[8] = info.photoUrl
     end
   end
+  
+  client.home[9] = (button == 0 and btn(2))
 end
 
 function client_connect()
-  log("Connected to server!")
+  log("Connected to server!", "n")
   
   my_id = client.id
 end
 
 function client_disconnect()
-  log("Disconnected from server!")
+  log("Disconnected from server!", "n")
   disconnected = true
 end
 
@@ -139,12 +145,14 @@ function server_input(id, diff)
     local s = cursors[id]
     ho = server.homes[id]
     s.x, s.y = ho[2], ho[3]
-    s.dn, s.up = ho[4], ho[5]
+    s.dn, s.up, s.bk = ho[4], ho[5], ho[6]
     
     if not s.name then
-      s.name = ho[6] or "Guest"
-      s.pic = ho[7]
+      s.name = ho[7] or "Guest"
+      s.pic = ho[8]
     end
+    
+    s.wipe = ho[9]
   end
 end
 
@@ -154,21 +162,21 @@ function server_output()
   for id, s in pairs(cursors) do
     server.share[2][id] = {
       s.x, s.y,
-      s.dn, s.up,
+      s.dn, s.up, s.bk,
       s.name, s.pic
     }
   end
 end
 
 function server_new_client(id)
-  log("New client: #"..id)
+  log("New client: #"..id, "n")
 
   cursors[id] = create_cursor(id)
   new_client[id] = true
 end
 
 function server_lost_client(id)
-  log("Client #"..id.." disconnected.")
+  log("Client #"..id.." disconnected.", "n")
 
   deregister_object(cursors[id])
   server.share[2][id] = nil
