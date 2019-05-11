@@ -52,6 +52,8 @@ end
 local sync_y = 0
 local sync_k = 1
 function _update()
+  color(3)
+  
   if not IS_SERVER then
     target(canvas)
     
