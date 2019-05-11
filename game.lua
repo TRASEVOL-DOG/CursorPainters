@@ -23,6 +23,11 @@ function _init()
       end
       cursor_d[y] = line
     end
+    
+    trace = {}
+    for y = 0,159 do
+      trace[y] = {}
+    end
   
     canvas = new_surface(256, 160)
     target(canvas)
@@ -71,11 +76,11 @@ function _update()
       sync_y = (sync_y + sync_k) % 160
       for y = sync_y, sync_y+sync_k-1 do
         local s_l = client.share[1][y]
-        local cd_l = canvas_d[y]
-        
         if s_l then
+          local cd_l = canvas_d[y]
+          local t_l = trace[y]
           for x,v in pairs(s_l) do
-            if v and x < btnv(0)-16 or x > btnv(0)+24 or y < btnv(1)-16 or y > btnv(1)+24 then
+            if v and not t_l[x] then
               cd_l[x] = v
               pset(x,y,v)
             end
@@ -85,8 +90,10 @@ function _update()
     end
     
     for y,l in pairs(canvas_diff) do
+      local t_l = trace[y]
       for x,v in pairs(l) do
         if v then
+          t_l[x] = nil
           pset(x,y,v)
         end
       end
@@ -123,9 +130,11 @@ function _update()
       
       for y,l in pairs(cursor_d) do
         local c_l = canvas_d[my + y]
+        local t_l = trace[my + y]
         if c_l then
           for x,v in pairs(l) do
             c_l[mx + x] = max(v+n, 0)
+            t_l[mx + x] = true
           end
         end
       end
