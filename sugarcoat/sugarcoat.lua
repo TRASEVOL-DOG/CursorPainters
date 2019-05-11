@@ -123,9 +123,6 @@ local _dont_arrange = {
   setDeprecationOutput = true,
   run                  = true,
   errorhandler         = true,
-  
-  focus      = true,
-  mousefocus = true
 }
 local _prev_exist = {}
 
