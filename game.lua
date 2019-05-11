@@ -52,10 +52,10 @@ end
 local sync_y = 0
 local sync_k = 1
 function _update()
-  color(3)
   
   if not IS_SERVER then
     target(canvas)
+    color(3)
     
     if my_id and client.share[1] then
       sync_y = (sync_y + sync_k) % 160
@@ -212,7 +212,7 @@ function _draw()
   
   draw_objects(3,4)
   
-  if castle and not my_id then
+  if castle and not client.connected then
     local x, y = 128, 80
     local str
     if castle.user.isLoggedIn then
