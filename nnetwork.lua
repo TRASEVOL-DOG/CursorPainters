@@ -107,8 +107,8 @@ function client_output()
   if not client.home[7] and castle and castle.user.isLoggedIn then
     local info = castle.user.getMe()
     if info then
-      client.home[7] = info.username
-      --client.home[7] = info.name or info.username
+      --client.home[7] = info.username
+      client.home[7] = info.name or info.username
       client.home[8] = info.photoUrl
     end
   end
@@ -137,7 +137,9 @@ function server_input(id, diff)
       for y, l_d in pairs(ho[1]) do
         local cl_d = canvas_d[y]
         for x, v in pairs(l_d) do
-          cl_d[x] = v
+          if v then
+            cl_d[x] = v
+          end
         end
       end
     end

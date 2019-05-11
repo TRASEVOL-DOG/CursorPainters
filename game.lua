@@ -58,9 +58,16 @@ function _update()
     if my_id then
       sync_y = (sync_y + sync_k) % 160
       for y = sync_y, sync_y+sync_k-1 do
-        for x,v in pairs(client.share[1][y]) do
-          canvas_d[y][x] = v
-          pset(x,y,v)
+        local s_l = client.share[1][y]
+        local cd_l = canvas_d[y]
+        
+        if s_l then
+          for x,v in pairs(client.share[1][s_l]) do
+            if v then
+              canvas_d[y][x] = v
+              pset(x,y,v)
+            end
+          end
         end
       end
     end
@@ -134,15 +141,17 @@ function _update()
       
       if button and btnp(2) then
         if button == 1 and castle and castle.post then
-          castle.post.create({
-            message = pick({"Everyone's an artist with CursorPainters!",
-                            "CursorPainters rocks!",
-                            "CursorPainters 4 life!",
-                            "CursorPainters v2.0.0 when???",
-                            "\\o/ !! CursorPainters !! \\o/",
-                            "I looooove CursorPainters! <3"}),
-            media = 'capture'
-          })
+          network.async(function() 
+            castle.post.create({
+              message = pick({"Everyone's an artist with CursorPainters!",
+                              "CursorPainters rocks!",
+                              "CursorPainters 4 life!",
+                              "CursorPainters v2.0.0 when???",
+                              "\\o/ !! CursorPainters !! \\o/",
+                              "I looooove CursorPainters! <3"}),
+              media = 'capture'
+            })
+          end)
         elseif button == 2 then
           show_self = not show_self
         end
@@ -302,7 +311,7 @@ function draw_bottombar()
       printp(0x3330, 0x3130, 0x3230, 0x3330)
       printp_color(3, 1, 0)
       local w = str_px_width(s.name)
-      pprint(s.name, x - w - 4, y-16)
+      pprint(s.name, x - w - 2, y-16)
     end
   end
 
