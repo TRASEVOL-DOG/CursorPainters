@@ -299,17 +299,20 @@ function draw_topbar()
   rectfill(0,9,255,9,1)
   rectfill(0,10,255,10,0)
   
-  local stra, strb = ":: CursorPainters!  v1.0.0", "by Trasevol_Dog ::"
+  local stra, strb = ":: CursorPainters!", "by Trasevol_Dog ::"
   local wb = str_px_width(strb)
+  local xb = 255 - wb
   print(stra, 0, -5, 1)
-  print(strb, 255 - wb, -5, 1)
+  print(strb, xb, -5, 1)
   clip(0,1,256,5)
   print(stra, 0, -5, 2)
-  print(strb, 255 - wb, -5, 2)
+  print(strb, xb, -5, 2)
   clip(0,1,256,3)
   print(stra, 0, -5, 3)
-  print(strb, 255 - wb, -5, 3)
+  print(strb, xb, -5, 3)
   clip()
+  
+  draw_info()
 end
 
 function draw_bottombar()
@@ -433,6 +436,77 @@ function draw_credits(y)
     pset(wa+wc-1, yy, max(pget(wa+wc-1, yy) - 2, 0))
   end
 end
+
+function draw_info()
+  local x = 128
+  
+  palt(0,true)
+  palt(1,false)
+  
+  spr(11, x-4, -1, 1, 1, false, true)
+  spr(11, x-3, -1, 1, 1, true, true)
+  
+  x = x
+  
+  local hover
+  if btnv(1) < 10 and btnv(0) >= x-4 and btnv(0) < x+5 then
+    if btn(2) then
+      spr(14, x-2, 1)
+    else
+      spr(13, x-2, 1)
+    end
+    hover = true
+  else
+    spr(12, x-2, 1)
+  end
+  
+  if hover then
+    local strs = {
+      "CursorPainters v1.0.0",
+      "",
+      "Controls:",
+      "- Left-Mouse-Button:",
+      "    Dark Cursor",
+      "- Right-mouse-Button:",
+      "    Lift Cursor",
+      "- Middle-Mouse-Button:",
+      "    Eraser Cursor",
+      "",
+      "Have fun making art!"
+    }
+    
+    local w = 0
+    local h = 0
+    for str in all(strs) do
+      if str == "" then
+        h = h + 4
+      else
+        h = h + 10
+        w = max(w, str_px_width(str))
+      end
+    end
+    w = w + 8
+    
+    local x = x - w/2
+    local y = 11
+    rectfill(x-2, y-2, x+w+1, y+h+1, 0)
+    rect(x-1, y-1, x+w, y+h, 1)
+    
+    x = x + 4
+    y = y - 4
+    
+    for str in all(strs) do
+      if str == "" then
+        y = y + 4
+      else
+        print(str, x, y+1, 1)
+        print(str, x, y, 3)
+        y = y + 10
+      end
+    end
+  end
+end
+
 
 -- CREATES
 
