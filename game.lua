@@ -62,9 +62,9 @@ function _update()
         local cd_l = canvas_d[y]
         
         if s_l then
-          for x,v in pairs(client.share[1][s_l]) do
+          for x,v in pairs(s_l) do
             if v then
-              canvas_d[y][x] = v
+              cd_l[x] = v
               pset(x,y,v)
             end
           end
