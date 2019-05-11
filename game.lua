@@ -57,7 +57,7 @@ function _update()
   if not IS_SERVER then
     target(canvas)
     
-    if my_id then
+    if my_id and client.share[1] then
       sync_y = (sync_y + sync_k) % 160
       for y = sync_y, sync_y+sync_k-1 do
         local s_l = client.share[1][y]
