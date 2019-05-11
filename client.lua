@@ -7,6 +7,8 @@ if CASTLE_PREFETCH then
     "https://raw.githubusercontent.com/castle-games/share.lua/master/state.lua",
     "assets/sheet.png",
     "assets/Lithify.ttf",
+    "assets/HapticPro.ttf",
+    "assets/SinsGold.ttf",
   })
 end
 
