@@ -325,7 +325,7 @@ function draw_bottombar()
       rectfill(x-33, y-33, x, y, 1)
       spr_sheet("cur"..s.id, x-32, y-32, 32, 32)
 
-      x = x - 32
+      y = y - 32
     end
     
     if s.name then
