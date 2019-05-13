@@ -4,6 +4,7 @@ title: CursorPainters
 owner: trasevol-dog
 primaryColor: 46878f
 coverImage: thumbnail.png
+dimensions: full
 multiplayer:
   enabled: true
   serverMain: server.lua
