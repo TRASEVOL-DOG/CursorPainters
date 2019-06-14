@@ -49,7 +49,7 @@ local function load_sfx(file, id, volume)
 end
 
 local function load_music(file, id, volume)
-  local mus = love.audio.newSource(file, "stream")
+  local mus = love.audio.newSource(file, "static")
   
   if id then
     if _music_map[id] then
@@ -112,7 +112,7 @@ local function sfx(id, distance, stereo_angle, pitch)
   local s = _sfx_map[id]
   
   if not s then
-    sugar.debug.r_log("Attempt to play inexistant sfx "..id..".")
+    sugar.debug.w_log("Attempt to play inexistant sfx "..id..".")
     return
   end
   
@@ -134,7 +134,8 @@ local function music(id, loop)
   local s = _music_map[id]
   
   if not s then
-    sugar.debug.r_log("Attempt to play inexistant music "..id..".")
+    sugar.debug.w_log("Attempt to play inexistant music "..id..".")
+    return
   end
   
   if _music_playing.mus then

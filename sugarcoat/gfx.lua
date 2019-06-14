@@ -13,37 +13,12 @@ local _flr = math.floor
 
 
 local _index_colors = {}
+local _custom_shader = false
+local _shader_vars = {}
+local _shader_arrays = {}
 
 local function _load_shaders()
-  local shader_code = {
---    color_to_index = [[
---      varying vec2 v_vTexcoord;
---      varying vec4 v_vColour;
---      
---      extern int pal_size;
---      extern vec3 opal[256];
---      
---      vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
---      {
---        vec4 col = Texel( texture, texture_coords );
---        
---        int c=0;
---        for (int i=0; i<pal_size; i++){
---          c += i * int(max(-2.0-sign(abs(col.r-opal[i].r)-0.05)-sign(abs(col.g-opal[i].g)-0.05)-sign(abs(col.b-opal[i].b)-0.05), 0.0));
---        }
---      
---        float cb = float(c);
---        
---        vec3 icol = vec3(
---          mod(cb, 10.0),
---          mod(floor(cb / 10.0), 10.0),
---          mod(floor(cb / 100.0), 10.0)
---        );
---        
---        return vec4(icol/10.0, 1.0);
---      }
---    ]],
-    
+  _D.shader_code = {
     color_to_index = [[
       varying vec2 v_vTexcoord;
       varying vec4 v_vColour;
@@ -77,7 +52,7 @@ local function _load_shaders()
           mod(floor(cb / 100.0), 10.0)
         );
         
-        return vec4(icol/10.0, 1.0);
+        return vec4(icol * 0.1, 1.0);
       }
     ]],
     
@@ -85,7 +60,7 @@ local function _load_shaders()
       varying vec2 v_vTexcoord;
       varying vec4 v_vColour;
       
-      extern int swaps[256];
+      extern float swaps[256];
       extern float trsps[256];
       
       vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
@@ -96,7 +71,7 @@ local function _load_shaders()
         
         float trsp = 1.0-trsps[c];
         
-        float cb = float(swaps[c]);
+        float cb = swaps[c];
         
         vec3 icol = vec3(
           mod(cb, 10.0),
@@ -104,30 +79,25 @@ local function _load_shaders()
           mod(floor(cb / 100.0), 10.0)
         );
         
-        return vec4(icol/10.0, trsp);
+        return vec4(icol * 0.1, trsp);
       }
     ]],
     
     index_to_color = [[
+      extern vec3 PALETTE[256]; extern int SWAPS[256]; int Texel_index(Image texture, vec2 coords); vec4 Texel_color(Image texture, vec2 coords);
       varying vec2 v_vTexcoord;
       varying vec4 v_vColour;
-      
-      extern vec3 opal[256];
-      extern int swaps[256];
       
       vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
       {
         vec4 col = Texel( texture, texture_coords );
-        
-        int c = int(floor(col.r * 10.0 + 0.5) + floor(col.g * 10.0 + 0.5)*10.0 + floor(col.b * 10.0 + 0.5) * 100.0);
-        
-        return vec4(opal[swaps[c] ], 1.0);
+        return vec4(PALETTE[ SWAPS[int(floor(col.r * 10.0 + 0.5) + floor(col.g * 10.0 + 0.5)*10.0 + floor(col.b * 10.0 + 0.5) * 100.0)] ], 1.0);
       }
     ]]
   }
   
   _D.shaders = {}
-  for name, code in pairs(shader_code) do
+  for name, code in pairs(_D.shader_code) do
     local status, message = love.graphics.validateShader(true, code)
     if status then
       _D.shaders[name] = love.graphics.newShader(code)
@@ -135,15 +105,19 @@ local function _load_shaders()
       sugar.debug.r_log("Could not validate '"..name.."' shader: "..message)
     end
   end
+  
+  _custom_shader = false
 end
 
 local function _update_shader_palette()
   local pal = {_D.palette_norm[0], unpack(_D.palette_norm)}
   
   _D.shaders.color_to_index:send("opal", unpack(pal))
-  _D.shaders.index_to_color:send("opal", unpack(pal))
-  
   _D.shaders.color_to_index:send("pal_size", #pal)
+  
+  if (not _custom_shader) or _shader_vars["PALETTE"] then
+    _D.shaders.index_to_color:send("PALETTE", unpack(pal))
+  end
 end
 
 function _D.use_color_index_shader()
@@ -163,8 +137,10 @@ end
 
 function _D.use_index_color_shader()
   local shader = _D.shaders.index_to_color
-
-  shader:send("swaps", _D.pltswp_fp[0], unpack(_D.pltswp_fp))
+  
+  if (not _custom_shader) or _shader_vars["SWAPS"] then
+    shader:send("SWAPS", _D.pltswp_fp[0], unpack(_D.pltswp_fp))
+  end
   
   love.graphics.setShader(shader)
 end
@@ -270,6 +246,13 @@ local function shutdown_gfx()
 end
 
 
+local _render_target
+local function render_to_canvas(canvas)
+  _render_target = canvas
+  sugar.gfx.update_screen_size()
+end
+
+
 local _bg_color = {0,0,0}
 local function _clear_window()
   local ocanv = love.graphics.getCanvas()
@@ -328,10 +311,18 @@ local function screen_resize(w, h, resize_window)
   end
 end
 
+local _prev_win_w = 0
+local _prev_win_h = 0
 local function update_screen_size()
   if not _D.init then return end
 
-  local win_w, win_h = sugar.gfx.window_size()
+  local win_w, win_h-- = sugar.gfx.window_size()
+  if _render_target then
+    win_w, win_h = _render_target:getDimensions()
+  else
+    win_w, win_h = sugar.gfx.window_size()
+  end
+  
   local scr_w, scr_h = sugar.gfx.screen_size()
 
   if _D.screen_resizeable then
@@ -363,8 +354,8 @@ local function update_screen_size()
     _D.screen_sca_x = scale
     _D.screen_sca_y = scale
     
-    _D.screen_x = (win_w - _D.screen_sca_x * scr_w) * 0.5
-    _D.screen_y = (win_h - _D.screen_sca_y * scr_h) * 0.5
+    _D.screen_x = sugar.maths.flr((win_w - _D.screen_sca_x * scr_w) * 0.5)
+    _D.screen_y = sugar.maths.flr((win_h - _D.screen_sca_y * scr_h) * 0.5)
     
   else
     local scale = sugar.maths.min(win_w / scr_w, win_h / scr_h)
@@ -377,6 +368,18 @@ local function update_screen_size()
   end
   
   _clear_window()
+  
+  if win_w == _prev_win_w and win_h == _prev_win_h then
+    return
+  else
+    _prev_win_w = win_w
+    _prev_win_h = win_h
+  end
+  
+  if _D.shaders.index_to_color:hasUniform("SCREEN_SIZE") then
+    local w,h = screen_size()
+    _D.shaders.index_to_color:send("SCREEN_SIZE", {w, h})
+  end
 
   if sugar.on_resize then
     sugar.on_resize()
@@ -431,7 +434,7 @@ local function half_flip()
   
   if active_canvas then
     love.graphics.setColor(1,1,1,1)
-    love.graphics.setCanvas()
+    love.graphics.setCanvas(_render_target)
     love.graphics.origin()
 
     _D.use_index_color_shader()
@@ -440,6 +443,11 @@ local function half_flip()
     love.graphics.draw(screen_canvas, _D.screen_x, _D.screen_y, 0, _D.screen_sca_x, _D.screen_sca_y)
 
     _D.reset_shader()
+	
+	if sugar.after_render then
+    love.graphics.setCanvas()
+	  sugar.after_render()
+	end
 
     love.graphics.setColor(_D.love_color)
   end
@@ -454,7 +462,7 @@ local function flip()
   
   if active_canvas then
     love.graphics.setColor(1,1,1,1)
-    love.graphics.setCanvas()
+    love.graphics.setCanvas(_render_target)
     love.graphics.origin()
     
     _D.use_index_color_shader()
@@ -462,6 +470,11 @@ local function flip()
     love.graphics.draw(screen_canvas, _D.screen_x, _D.screen_y, 0, _D.screen_sca_x, _D.screen_sca_y)
 
     _D.reset_shader()
+    
+    if sugar.after_render then
+      love.graphics.setCanvas()
+	  sugar.after_render()
+	end
     
     love.graphics.setColor(_D.love_color)
   end
@@ -471,6 +484,80 @@ local function flip()
   love.graphics.setCanvas(active_canvas)
 end
 
+
+---- SHADERS ----
+
+local function _default_screen_shader()
+  _D.shaders.index_to_color = love.graphics.newShader(_D.shader_code.index_to_color)
+  _update_shader_palette()
+  
+  _custom_shader = false
+  _shader_vars, _shader_arrays = {}, {}
+end
+
+local function screen_shader(shader_code)
+  if not shader_code then
+    _default_screen_shader();
+    return
+  end
+  
+  -- ADD extern vec2 SCREEN_SIZE
+  -- + update on resize
+  
+  local pre = "extern vec2 SCREEN_SIZE; extern vec3 PALETTE[256]; extern int SWAPS[256]; int Texel_index(Image texture, vec2 coords); vec4 Texel_color(Image texture, vec2 coords); "
+  local after = [[
+    int Texel_index(Image texture, vec2 coords){
+	    vec4 col = Texel( texture, coords );
+	    int c = int(floor(col.r * 10.0 + 0.5) + floor(col.g * 10.0 + 0.5)*10.0 + floor(col.b * 10.0 + 0.5) * 100.0);
+	  
+	    return SWAPS[c];
+	  }
+	  
+	  vec4 Texel_color(Image texture, vec2 coords){
+	    return vec4(PALETTE[ Texel_index(texture, coords) ], 1.0);
+	  }
+  ]]
+  
+  shader_code = pre..shader_code..after
+  
+  local status, message = love.graphics.validateShader(true, shader_code)
+  if status then
+    _D.shaders.index_to_color = love.graphics.newShader(shader_code)
+    
+    _shader_vars, _shader_arrays = {}, {}
+    for var_dec in shader_code:gmatch('extern.-;') do
+      local var = var_dec:match('extern.-%a+.-([%a_]+).-;')
+      local is_array = var_dec:find('%[') ~= nil
+      
+      _shader_vars[var] = true
+      if is_array then
+        _shader_arrays[var] = true
+      end
+    end
+    
+    _update_shader_palette()
+    if _shader_vars["SCREEN_SIZE"] then
+      local w,h = screen_size()
+      _D.shaders.index_to_color:send("SCREEN_SIZE", {w, h})
+    end
+    
+    _custom_shader = true
+  else
+    sugar.debug.r_log("Could not validate custom screen shader: "..message)
+  end
+end
+
+local function screen_shader_input(value_table)
+  for key, value in pairs(value_table) do
+    if _shader_vars[key] then
+      if _shader_arrays[key] then
+        _D.shaders.index_to_color:send(key, unpack(value))
+      else
+        _D.shaders.index_to_color:send(key, value)
+      end
+    end
+  end
+end
 
 
 ---- DRAWING ----
@@ -715,7 +802,7 @@ local function new_surface(w, h, key)
     key = #_D.surf_list + 1
   end
   
-  _D.surf_list[key] = love.graphics.newCanvas(w, h)
+  _D.surf_list[key] = love.graphics.newCanvas(w, h, {dpiscale = 1})
   
   sugar.debug.log("Successfully created "..w.."x"..h.." surface '"..key.."'.")
   
@@ -1042,6 +1129,8 @@ local gfx = {
   init_gfx                       = init_gfx,
   shutdown_gfx                   = shutdown_gfx,
   
+  render_to_canvas               = render_to_canvas,
+  
   screen_render_stretch          = screen_render_stretch,
   screen_render_integer_scale    = screen_render_integer_scale,
   screen_resizeable              = screen_resizeable,
@@ -1060,6 +1149,8 @@ local gfx = {
   half_flip                      = half_flip,
   flip                           = flip,
   
+  screen_shader                  = screen_shader,
+  screen_shader_input            = screen_shader_input,
   
   camera                         = camera,
   camera_move                    = camera_move,

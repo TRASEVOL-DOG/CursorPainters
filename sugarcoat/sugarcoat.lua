@@ -26,6 +26,8 @@ local events = require("sugarcoat/sugar_events")
 local active_canvas
 local old_love = love
 
+local _debug = debug
+
 local function arrange_call(v, before, after)
   return function(...)
     -- wrap before
@@ -37,7 +39,7 @@ local function arrange_call(v, before, after)
     
     local r
     if v then
-      r = {pcall(v, ...)}
+      r = {xpcall(v, _debug.traceback, ...)}
     else
       r = {true}
     end
@@ -50,6 +52,7 @@ local function arrange_call(v, before, after)
     if r[1] then
       return r[2]
     else
+      r_log(r[2])
       error(r[2], 0)
     end
   end
@@ -64,7 +67,7 @@ if SUGAR_SERVER_MODE then
       
       local r
       if v then
-        r = {pcall(v, ...)}
+        r = {xpcall(v, _debug.traceback, ...)}
       else
         r = {true}
       end
@@ -74,6 +77,7 @@ if SUGAR_SERVER_MODE then
       if r[1] then
         return r[2]
       else
+        r_log(r[2])
         error(r[2], 0)
       end
     end
@@ -102,27 +106,13 @@ love = setmetatable({}, {
   end
 })
 
-if castle then
-  local old_castle = castle
-  castle = setmetatable({}, {
-    __index = old_castle,
-    __newindex = function(t, k, v)
-      if type(v) == "function" or v == nil then
-        old_castle[k] = arrange_call(v)
-      else
-        old_castle[k] = v
-      end
-    end
-  })
-end
-
 local _dont_arrange = {
   getVersion           = true,
   hasDeprecationOutput = true,
   isVersionCompatible  = true,
   setDeprecationOutput = true,
   run                  = true,
-  errorhandler         = true,
+  errorhandler         = true
 }
 local _prev_exist = {}
 
@@ -132,6 +122,36 @@ for k,v in pairs(old_love) do
   end
 end
 
+
+local _castle_prev_exist
+if castle then
+  local old_castle = castle
+  castle = setmetatable({}, {
+    __index = old_castle,
+    __newindex = function(t, k, v)
+      if type(v) == "function" or v == nil then
+        if k == "backgroundupdate" then
+          old_castle[k] = arrange_call(v, sugar_step, nil)
+        else
+          old_castle[k] = arrange_call(v)
+        end
+      else
+        old_castle[k] = v
+      end
+    end
+  })
+  
+  local _dont_arrange = {
+
+  }
+  _castle_prev_exist = {}
+  
+  for k,v in pairs(old_castle) do
+    if type(v) == "function" and not _dont_arrange[k] then
+      _castle_prev_exist[k] = v
+    end
+  end
+end
 
 require("sugarcoat/utility")
 require("sugarcoat/debug")
@@ -148,6 +168,12 @@ for k,v in pairs(_prev_exist) do
   love[k] = v
 end
 
+if _castle_prev_exist then
+  for k,v in pairs(_castle_prev_exist) do
+    castle[k] = v
+  end
+end
+
 local function quit()
   sugar.shutdown_sugar()
 end
@@ -155,13 +181,35 @@ end
 love.quit = quit
 events.quit = quit
 
-if not SUGAR_SERVER_MODE then
-  local ocanv
-  old_love.focus = function(b)
-    if b then
-      love.graphics.setCanvas(ocanv)
-    else
-      ocanv = love.graphics.getCanvas()
+
+if castle then
+  local canvas
+  function network.paused()
+    canvas = love.graphics.getCanvas()
+    love.graphics.setCanvas()
+  end
+  
+  function network.resumed()
+    love.graphics.setCanvas(canvas)
+  end
+end
+
+
+if SUGAR_SERVER_MODE then
+  local forbid = {
+    "gfx",
+    "audio",
+    "input"
+  }
+  
+  for _, k in pairs(forbid) do
+    for name, foo in pairs(sugar[k]) do
+      sugar[k][name] = function(...)
+        sugar.debug.w_log("Using forbidden "..k.." function '"..name.."'.")
+        foo(...)
+      end
+      
+      sugar.S[name] = sugar[k][name]
     end
   end
 end

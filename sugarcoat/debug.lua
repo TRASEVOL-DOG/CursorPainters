@@ -69,6 +69,8 @@ local function assert(condition, str)
   if not condition then
     abort("Assert Failed: "..str)
   end
+  
+  return condition
 end
 
 local function abort(str)
@@ -108,7 +110,7 @@ sugar.debug = {
   abort           = abort,
   abort_brutal    = abort_brutal,
   
-  write_clipboard = write_clipbaord,
+  write_clipboard = write_clipboard,
   read_clipboard  = read_clipboard
 }
 
