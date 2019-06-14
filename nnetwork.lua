@@ -196,7 +196,7 @@ function server_input(id, diff)
         end
       end
       log("Taking palette from client.")
-      server.share[3]:__relevance(function(self, client_id) if client_id == id then return false else return true end end)
+      server.share:__relevance(function(self, client_id) return {true, true, (client_id ~= id)} end)
     end
   end
 end
