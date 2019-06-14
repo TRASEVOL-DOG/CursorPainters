@@ -2,11 +2,94 @@
 require("nnetwork")
 require("object")
 
+palette_sync = true
+local shader_on = true
+
+plt = {
+[0]={r = 0x33/255, g = 0x2c/255, b = 0x50/255},
+    {r = 0x46/255, g = 0x87/255, b = 0x8f/255},
+    {r = 0x94/255, g = 0xe3/255, b = 0x44/255},
+    {r = 0xe2/255, g = 0xf3/255, b = 0xe4/255}
+}
+local ui = castle.ui
+function castle.uiupdate()
+  ui.markdown([[
+#### Hello!
+This game is ***multiplayer!*** You can play still play it by yourself, but you can also invite friends to join your session and draw along with you!
+
+Either way, have fun! :)
+
+#### Palette Editor
+]])
+  
+  local refresh
+  ui.toggle("Local Palette", "Session Palette", palette_sync, {
+    onToggle = function()
+      palette_sync = not palette_sync
+      if palette_sync and client.share and client.share[3] then
+        for i = 0,3 do
+          local c = client.share[3][i]
+          if c then
+            plt[i].r = c.r or plt[i].r
+            plt[i].g = c.g or plt[i].g
+            plt[i].b = c.b or plt[i].b
+          end
+        end
+        log("Loading palette from server.")
+        
+        use_palette({
+          flr(plt[0].r*255)*256*256 +flr(plt[0].g*255)*256 +flr(plt[0].b*255),
+          flr(plt[1].r*255)*256*256 +flr(plt[1].g*255)*256 +flr(plt[1].b*255),
+          flr(plt[2].r*255)*256*256 +flr(plt[2].g*255)*256 +flr(plt[2].b*255),
+          flr(plt[3].r*255)*256*256 +flr(plt[3].g*255)*256 +flr(plt[3].b*255),
+        })
+      end
+    end
+  })
+  
+  for i = 0,3 do
+    plt[i].r, plt[i].g, plt[i].b = ui.colorPicker("Color "..i,
+      plt[i].r,
+      plt[i].g,
+      plt[i].b,
+      1,
+      { enableAlpha = false,
+        onChange = function()
+          refresh = true
+        end })
+  end
+  
+  if refresh then
+    use_palette({
+      flr(plt[0].r*255)*256*256 +flr(plt[0].g*255)*256 +flr(plt[0].b*255),
+      flr(plt[1].r*255)*256*256 +flr(plt[1].g*255)*256 +flr(plt[1].b*255),
+      flr(plt[2].r*255)*256*256 +flr(plt[2].g*255)*256 +flr(plt[2].b*255),
+      flr(plt[3].r*255)*256*256 +flr(plt[3].g*255)*256 +flr(plt[3].b*255),
+    })
+    
+    if palette_sync and client and client.home then
+      client.home[10] = copy_table(plt, true)
+    end
+  end
+  
+  ui.markdown("#### Other Settings")
+  
+  ui.toggle("Shader OFF", "Shader ON", shader_on, {
+    onToggle = function()
+      shader_on = not shader_on
+      shader_switch(shader_on)
+    end
+  })
+end
 
 
 -- CORE
 
 function _init()
+  if not IS_SERVER then
+    shader_switch(true)
+  end
+
   init_object_mgr(
     "cursor"
   )
@@ -58,8 +141,10 @@ function _init()
 
   init_network()
   
-  spritesheet_grid(11,11)
-  palt(0, false)
+  if not IS_SERVER then
+    spritesheet_grid(11,11)
+    palt(0, false)
+  end
   
   my_cursor = create_cursor()
 end
@@ -67,8 +152,9 @@ end
 local sync_y = 0
 local sync_k = 1
 function _update()
-  
   if not IS_SERVER then
+    screen_shader_input({ time = t() })
+    
     target(canvas)
     color(3)
     
@@ -462,7 +548,7 @@ function draw_info()
   
   if hover then
     local strs = {
-      "CursorPainters v1.0.0",
+      "CursorPainters v1.1.0",
       "",
       "Controls:",
       "- Left-Mouse-Button:",
@@ -561,4 +647,109 @@ function define_controls()
   register_btn(2, 0, input_id("mouse_button", "lb"))
   register_btn(3, 0, input_id("mouse_button", "rb"))
   register_btn(4, 0, input_id("mouse_button", "mb"))
+end
+
+
+local shader_crt_curve      = 0.025
+local shader_glow_strength  = 0.25
+local shader_distortion_ray = 3.0
+local shader_scan_lines     = 1.0
+
+function shader_switch(enable)
+  if not enable then
+    screen_shader()
+    return
+  end
+  
+  screen_shader([[
+    varying vec2 v_vTexcoord;
+    varying vec4 v_vColour;
+    
+    extern float crt_curve;      // default: 0.035
+    extern float glow_strength;  // default: 0.5
+    extern float distortion_ray; // default: 1.0
+    extern float scan_lines;     // default: 1.0
+    extern float time;
+    
+    const float PI = 3.1415926535897932384626433832795;
+    
+    float get_line_k(float x, float y){
+      return mix(1.0, min(abs(sin(y * SCREEN_SIZE.y * PI)), abs(sin(x * SCREEN_SIZE.x * PI))), scan_lines);
+    }
+    
+    float sqr(float a){
+      return a*a;
+    }
+    
+    vec4 effect(vec4 color, Image texture, vec2 coords, vec2 screen_coords)
+    {
+      coords = coords * 2.0 - vec2(1.0, 1.0);
+      coords += (coords.yx * coords.yx) * coords * crt_curve;
+      
+      float mask = min(sign(1.0 - abs(coords.x)), sign(1.0 - abs(coords.y)));
+      mask = max(mask, 0.0);
+      coords = coords * 0.5 + vec2(0.5, 0.5);
+      
+      float distor_k = distortion_ray * max(sqr(cos(-time*0.73 - coords.y*SCREEN_SIZE.y*0.041)) - 0.85, 0.05);// * sin(0.4*sqr(cos(-time*20.023 - coords.y*SCREEN_SIZE.y*1.211 + 0.127654)));
+      //coords.x += 0.002 * distor_k;
+    
+      vec4 col = Texel_color(texture, coords);
+      
+      float yk = get_line_k(coords.x, coords.y);
+      col.rgb *= yk;
+      
+      col.rgb += 1.5 * abs(distor_k) * vec3(
+        col.r + col.b,
+        col.g + col.r,
+        col.b + col.g
+      );
+      
+      float n = 0.4;
+      vec2 tca = vec2(0.98 * n, 0.2 * n) / SCREEN_SIZE;
+      vec2 tcb = vec2(-0.98 * n, 0.2 * n) / SCREEN_SIZE;
+      vec2 tcc = vec2(0.2 * n, 0.98 * n) / SCREEN_SIZE;
+      vec2 tcd = vec2(-0.2 * n, 0.98 * n) / SCREEN_SIZE;
+      
+      vec4 glow = 0.1 * (
+        Texel_color(texture, coords + tca) +
+        Texel_color(texture, coords - tca) +
+        Texel_color(texture, coords + tcb) +
+        Texel_color(texture, coords - tcb) +
+        Texel_color(texture, coords + tcc) +
+        Texel_color(texture, coords - tcc) +
+        Texel_color(texture, coords + tcd) +
+        Texel_color(texture, coords - tcd)
+      );
+      
+      tca *= 2.0;
+      tcb *= 2.0;
+      tcc *= 2.0;
+      tcd *= 2.0;
+      
+      glow += 0.05 * (
+        Texel_color(texture, coords + tca) +
+        Texel_color(texture, coords - tca) +
+        Texel_color(texture, coords + tcb) +
+        Texel_color(texture, coords - tcb) +
+        Texel_color(texture, coords + tcc) +
+        Texel_color(texture, coords - tcc) +
+        Texel_color(texture, coords + tcd) +
+        Texel_color(texture, coords - tcd)
+      );
+
+      
+      return mix((col + glow_strength * glow * (1.0 + abs(distor_k))), glow, glow_strength) * mask;
+    }
+  ]])
+  
+  update_shader_parameters()
+end
+
+function update_shader_parameters()
+  screen_shader_input({
+    crt_curve      = shader_crt_curve,
+    glow_strength  = shader_glow_strength,
+    distortion_ray = shader_distortion_ray,
+    scan_lines     = shader_scan_lines
+  })
 end

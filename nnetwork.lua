@@ -94,6 +94,24 @@ function client_input(diff)
       end
     end
   end
+  
+  if diff[3] and diff[3] ~= nil and palette_sync then
+    for i = 0,3 do
+      local c = diff[3][i]
+      if c then
+        plt[i].r = c.r or plt[i].r
+        plt[i].g = c.g or plt[i].g
+        plt[i].b = c.b or plt[i].b
+      end
+    end
+    log("Loading palette from server.")
+    use_palette({
+      flr(plt[0].r*255)*256*256 +flr(plt[0].g*255)*256 +flr(plt[0].b*255),
+      flr(plt[1].r*255)*256*256 +flr(plt[1].g*255)*256 +flr(plt[1].b*255),
+      flr(plt[2].r*255)*256*256 +flr(plt[2].g*255)*256 +flr(plt[2].b*255),
+      flr(plt[3].r*255)*256*256 +flr(plt[3].g*255)*256 +flr(plt[3].b*255),
+    })
+  end
 end
 
 function client_output()
@@ -155,6 +173,31 @@ function server_input(id, diff)
     end
     
     s.wipe = ho[9]
+    
+    if diff[10] then
+      if not server.share[3] then
+        server.share[3] = {}
+      end
+    
+      for i = 0,3 do
+        local sc = server.share[3][i]
+        if not sc then
+          sc = {}
+          server.share[3][i] = sc
+        end
+        
+        local c = diff[10][i]
+        if c then
+          sc.r = c.r or sc.r
+          sc.g = c.g or sc.g
+          sc.b = c.b or sc.b
+          
+          log(sc.r.." - "..sc.g.." - "..sc.b)
+        end
+      end
+      log("Taking palette from client.")
+      --server.share[3]:__relevance(function(self, client_id) if client_id == id then return false else return true end end)
+    end
   end
 end
 
